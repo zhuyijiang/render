@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 HEADERS += \
     geometry.h \
     objects.h \
-    lights.h
+    lights.h \
+    bezier_data.h
 
 QMAKE_CXXFLAGS +=  -Wno-unused-parameter
