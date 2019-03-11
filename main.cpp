@@ -217,6 +217,55 @@ Vec3f dVBezier(const Vec3f *controlPoints, const float &u, const float &v)
     return derivBezier(uCurve, v);
 }
 
+
+void createPolyTeapot(const Matrix44f& o2w, std::vector<std::unique_ptr<Object>> &objects)
+{
+    uint32_t divs = 8;
+    std::unique_ptr<Vec3f []> P(new Vec3f[(divs + 1) * (divs + 1)]);
+    std::unique_ptr<uint32_t []> nvertices(new uint32_t[divs * divs]);
+    std::unique_ptr<uint32_t []> vertices(new uint32_t[divs * divs * 4]);
+    std::unique_ptr<Vec3f []> N(new Vec3f[(divs + 1) * (divs + 1)]);
+    std::unique_ptr<Vec2f []> st(new Vec2f[(divs + 1) * (divs + 1)]);
+
+    // face connectivity - all patches are subdivided the same way so there
+    // share the same topology and uvs
+    for (uint16_t j = 0, k = 0; j < divs; ++j) {
+        for (uint16_t i = 0; i < divs; ++i, ++k) {
+            nvertices[k] = 4;
+            vertices[k * 4    ] = (divs + 1) * j + i;
+            vertices[k * 4 + 1] = (divs + 1) * j + i + 1;
+            vertices[k * 4 + 2] = (divs + 1) * (j + 1) + i + 1;
+            vertices[k * 4 + 3] = (divs + 1) * (j + 1) + i;
+        }
+    }
+
+    Vec3f controlPoints[16];
+    for (int np = 0; np < kTeapotNumPatches; ++np) { // kTeapotNumPatches
+        // set the control points for the current patch
+        for (uint32_t i = 0; i < 16; ++i)
+            controlPoints[i][0] = teapotVertices[teapotPatches[np][i] - 1][0],
+            controlPoints[i][1] = teapotVertices[teapotPatches[np][i] - 1][1],
+            controlPoints[i][2] = teapotVertices[teapotPatches[np][i] - 1][2];
+
+        // generate grid
+        for (uint16_t j = 0, k = 0; j <= divs; ++j) {
+            float v = j / (float)divs;
+            for (uint16_t i = 0; i <= divs; ++i, ++k) {
+                float u = i / (float)divs;
+                P[k] = evalBezierSurface(controlPoints, u, v);
+                Vec3f dU = dUBezier(controlPoints, u, v);
+                Vec3f dV = dVBezier(controlPoints, u, v);
+                N[k] = dU.crossProduct(dV).normalize();
+                st[k].x = u;
+                st[k].y = v;
+            }
+        }
+
+        objects.push_back(std::unique_ptr<TriangleMesh>(new TriangleMesh(o2w, divs * divs, nvertices, vertices, P, N, st)));
+    }
+}
+
+
 void createCurveGeometry(std::vector<std::unique_ptr<Object>> &object)
 {
     uint32_t ndivs = 16;
@@ -458,7 +507,8 @@ int main(int argc, char **argv)
     std::vector<std::unique_ptr<Object>> objects;
     std::cout << "call" << std::endl;
 
-    createCurveGeometry(objects);
+    createPolyTeapot(Matrix44f(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1), objects);
+    //createCurveGeometry(objects);
 
     // lights
     std::vector<std::unique_ptr<Light>> lights;
@@ -469,10 +519,10 @@ int main(int argc, char **argv)
     options.height = 512;
     options.maxDepth = 1;
     // to render the teapot
-    //options.cameraToWorld = Matrix44f(0.897258, 0, -0.441506, 0, -0.288129, 0.757698, -0.585556, 0, 0.334528, 0.652606, 0.679851, 0, 5.439442, 11.080794, 10.381341, 1);
+    options.cameraToWorld = Matrix44f(0.897258, 0, -0.441506, 0, -0.288129, 0.757698, -0.585556, 0, 0.334528, 0.652606, 0.679851, 0, 5.439442, 11.080794, 10.381341, 1);
 
     // to render the curve as geometry
-    options.cameraToWorld = Matrix44f(0.707107, 0, -0.707107, 0, -0.369866, 0.85229, -0.369866, 0, 0.60266, 0.523069, 0.60266, 0, 2.634, 3.178036, 2.262122, 1);
+    //options.cameraToWorld = Matrix44f(0.707107, 0, -0.707107, 0, -0.369866, 0.85229, -0.369866, 0, 0.60266, 0.523069, 0.60266, 0, 2.634, 3.178036, 2.262122, 1);
 
     Matrix44f l2w(0.916445, -0.218118, 0.335488, 0, 0.204618, -0.465058, -0.861309, 0, 0.343889, 0.857989, -0.381569, 0, 0, 0, 0, 1);
     lights.push_back(std::unique_ptr<Light>(new DistantLight(l2w, 1, 16)));
