@@ -26,6 +26,7 @@ HEADERS += \
     geometry.h \
     objects.h \
     lights.h \
-    bezier_data.h
+    bezier_data.h \
+    acceleration_structures.h
 
 QMAKE_CXXFLAGS +=  -Wno-unused-parameter

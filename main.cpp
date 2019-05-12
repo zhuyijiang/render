@@ -9,7 +9,6 @@
 #include <sstream>
 #include <chrono>
 #include <cstdint>
-
 #include <random>
 
 #include "geometry.h"
